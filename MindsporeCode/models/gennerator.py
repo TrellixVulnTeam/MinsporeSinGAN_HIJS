@@ -1,7 +1,9 @@
 from mindspore import nn
 import mindspore
 
-#torch
+# torch
+
+
 class Generator(nn.Cell):
     def __init__(self, img_size_min, num_scale, scale_factor=4/3):
         super(Generator, self).__init__()
@@ -11,7 +13,8 @@ class Generator(nn.Cell):
         self.nf = 32
         self.current_scale = 0
 
-        self.size_list = [int(self.img_size_min * scale_factor**i) for i in range(num_scale + 1)]
+        self.size_list = [int(self.img_size_min * scale_factor**i)
+                          for i in range(num_scale + 1)]
         print(self.size_list)
 
         self.sub_generators = nn.CellList()
@@ -44,7 +47,8 @@ class Generator(nn.Cell):
             x_inter = x_first
 
         for i in range(1, self.current_scale + 1):
-            x_inter = F.interpolate(x_inter, (self.size_list[i], self.size_list[i]), mode='bilinear', align_corners=True)
+            x_inter = nn.ResizeBilinear()(
+                x_inter, (self.size_list[i], self.size_list[i]), mode='bilinear', align_corners=True)
             x_prev = x_inter
             x_inter = mindspore.ops.Pad(x_inter, [5, 5, 5, 5], value=0)
             x_inter = x_inter + z[i]

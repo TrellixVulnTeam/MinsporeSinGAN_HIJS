@@ -103,7 +103,6 @@ def main():
     formatted_print('Result DIR:', args.res_dir)
     formatted_print('GAN TYPE:', args.gantype)
 
-
     // 因为mindspore没有多进程加速运算模块，故阻止多进程运算
     if args.gpu is None or args.multiprocessing_distributed or args.distributed:
         print('Multiprocessing distributed is banned... Please rerun the program.')
