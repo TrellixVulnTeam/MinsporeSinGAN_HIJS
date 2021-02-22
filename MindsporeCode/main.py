@@ -275,20 +275,19 @@ def main_worker(gpu, ngpus_per_node, args):
         ##############
         # Save model #
         ##############
-        if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
-            if stage == 0:
-                check_list = open(os.path.join(
-                    args.log_dir, "checkpoint.txt"), "a+")
-            save_checkpoint({
-                'stage': stage + 1,
-                'D_state_dict': discriminator.state_dict(),
-                'G_state_dict': generator.state_dict(),
-                'd_optimizer': d_opt.state_dict(),
-                'g_optimizer': g_opt.state_dict(),
-                'img_to_use': args.img_to_use
-            }, check_list, args.log_dir, stage + 1)
-            if stage == args.num_scale:
-                check_list.close()
+        if stage == 0:
+            check_list = open(os.path.join(
+                args.log_dir, "checkpoint.txt"), "a+")
+        save_checkpoint({
+            'stage': stage + 1,
+            'D_state_dict': discriminator.state_dict(),
+            'G_state_dict': generator.state_dict(),
+            'd_optimizer': d_opt.state_dict(),
+            'g_optimizer': g_opt.state_dict(),
+            'img_to_use': args.img_to_use
+        }, check_list, args.log_dir, stage + 1)
+        if stage == args.num_scale:
+            check_list.close()
 
 
 if __name__ == '__main__':
