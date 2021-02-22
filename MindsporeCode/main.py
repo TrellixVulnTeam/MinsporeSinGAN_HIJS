@@ -40,29 +40,24 @@ parser.add_argument('--validation', dest='validation', action='store_true',
                     help='evaluate model on validation set')
 parser.add_argument('--test', dest='test', action='store_true',
                     help='test model on validation set')
-parser.add_argument('--world-size', default=1, type=int,
-                    help='number of nodes for distributed training')
 parser.add_argument('--rank', default=0, type=int,
                     help='node rank for distributed training')
 parser.add_argument('--gpu', default=None, type=str,
                     help='GPU id to use.')
-parser.add_argument('--multiprocessing-distributed', action='store_true',
-                    help='Use multi-processing distributed training to launch '
-                         'N processes per node, which has N GPUs. This is the '
-                         'fastest way to use PyTorch for either single node or '
-                         'multi node data parallel training')
 parser.add_argument('--port', default='8888', type=str)
 
-# main
+
 def main():
     args = parser.parse_args()
 
-    if args.gpu is not None:
-        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-        warnings.warn('You have chosen a specific GPU. This will completely '
-                      'disable data parallelism.')
+    # 如果没有设定使用哪个GPU，默认就是用0号
+    if args.gpu is None:
+        args.gpu = 0
+    else:
+        warnings.warn(
+            'You have chosen a specific GPU: GPU {}'.format(args.gpu))
 
-    args.distributed = args.world_size > 1 or args.multiprocessing_distributed
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
     ngpus_per_node = mindspore.communication.get_group_size(
         group='hccl_world_group')
@@ -101,12 +96,7 @@ def main():
     formatted_print('Result DIR:', args.res_dir)
     formatted_print('GAN TYPE:', args.gantype)
 
-    # 因为mindspore没有多进程加速运算模块，故阻止多进程运算
-    if args.gpu is None or args.multiprocessing_distributed or args.distributed:
-        print('Multiprocessing distributed is banned... Please rerun the program.')
-        exit(1)
-    else:
-        main_worker(args.gpu, ngpus_per_node, args)
+    main_worker(args.gpu, ngpus_per_node, args)
 
 
 def main_worker(gpu, ngpus_per_node, args):
@@ -164,22 +154,8 @@ def main_worker(gpu, ngpus_per_node, args):
                 generator.progress()
                 discriminator.progress()
             networks = [discriminator, generator]
-            if args.distributed:
-                if args.gpu is not None:
-                    print('Distributed to', args.gpu)
-                    mindspore.context.set_context(device_target="GPU")
-                    networks = [x.cuda(args.gpu) for x in networks]
-                    args.batch_size = int(args.batch_size / ngpus_per_node)
-                    args.workers = int(args.workers / ngpus_per_node)
-                    networks = [
-                        torch.nn.parallel.DistributedDataParallel(x, device_ids=[args.gpu], output_device=args.gpu) for
-                        x in networks]
-                else:
-                    networks = [x.cuda() for x in networks]
-                    networks = [torch.nn.parallel.DistributedDataParallel(
-                        x) for x in networks]
 
-            elif args.gpu is not None:
+            if args.gpu is not None:
                 mindspore.context.set_context(device_target="GPU")
                 networks = [x.cuda(args.gpu) for x in networks]
             else:
