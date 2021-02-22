@@ -137,7 +137,7 @@ def main_worker(gpu, ngpus_per_node, args):
         mindspore.context.set_context(device_target="GPU")
         networks = [x.cuda(args.gpu) for x in networks]
     else:
-        networks = [torch.nn.DataParallel(x).cuda() for x in networks]
+        exit(1)
 
     discriminator, generator, = networks
 
@@ -223,7 +223,6 @@ def main_worker(gpu, ngpus_per_node, args):
         validateSinGAN(train_loader, networks, args.stage,
                        args, {"z_rec": z_fix_list})
         return
-
     elif args.test:
         validateSinGAN(train_loader, networks, args.stage,
                        args, {"z_rec": z_fix_list})
@@ -269,9 +268,9 @@ def main_worker(gpu, ngpus_per_node, args):
                 param.requires_grad = False
 
         d_opt = mindspore.nn.Adam(discriminator.sub_discriminators[discriminator.current_scale].parameters(),
-                                    5e-4, 0.5, 0.999)
+                                  5e-4, 0.5, 0.999)
         g_opt = mindspore.nn.Adam(generator.sub_generators[generator.current_scale].parameters(),
-                                    5e-4, 0.5, 0.999)
+                                  5e-4, 0.5, 0.999)
 
         ##############
         # Save model #

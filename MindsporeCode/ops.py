@@ -60,7 +60,8 @@ def generate_y_rand(size):
     total_size = size
     tmp_rand = []
     tmp_rand.append(np.random.choice(2, total_size, p=[48. / 60., 12. / 60.]))
-    tmp = np.random.choice(5, total_size, p=[17. / 60., 15. / 60., 10. / 60., 12. / 60., 6. / 60.])
+    tmp = np.random.choice(
+        5, total_size, p=[17. / 60., 15. / 60., 10. / 60., 12. / 60., 6. / 60.])
     tmp_z = np.zeros([total_size, 4])
     i = 0
     for m in tmp:
@@ -137,13 +138,16 @@ class ConditionalBatchNorm2d(nn.Module):
         self.num_features = num_features
         self.bn = nn.BatchNorm2d(num_features, affine=False, momentum=momentum)
         self.embed = nn.Embedding(num_classes, num_features * 2)
-        self.embed.weight.data[:, :num_features].normal_(1, 0.02)  # Initialise scale at N(1, 0.02)
-        self.embed.weight.data[:, num_features:].zero_()  # Initialise bias at 0
+        self.embed.weight.data[:, :num_features].normal_(
+            1, 0.02)  # Initialise scale at N(1, 0.02)
+        # Initialise bias at 0
+        self.embed.weight.data[:, num_features:].zero_()
 
     def forward(self, x, y):
         out = self.bn(x)
         gamma, beta = self.embed(y).chunk(2, 1)
-        out = gamma.view(-1, self.num_features, 1, 1) * out + beta.view(-1, self.num_features, 1, 1)
+        out = gamma.view(-1, self.num_features, 1, 1) * out + \
+            beta.view(-1, self.num_features, 1, 1)
         return out
 
 
@@ -159,7 +163,8 @@ class MultiConditionalBatchNorm2d(nn.Module):
         out = self.bn(x)
         gamma = self.gamma(y)
         beta = self.beta(y)
-        out = gamma.view(-1, self.num_features, 1, 1) * out + beta.view(-1, self.num_features, 1, 1)
+        out = gamma.view(-1, self.num_features, 1, 1) * out + \
+            beta.view(-1, self.num_features, 1, 1)
         return out
 
 
@@ -172,7 +177,8 @@ class SpatialAdaptiveNorm2d(nn.Module):
         if num_classes > 0:
             self.bn = MultiConditionalBatchNorm2d(num_features, num_classes)
         else:
-            self.bn = nn.BatchNorm2d(num_features, affine=False, momentum=momentum)
+            self.bn = nn.BatchNorm2d(
+                num_features, affine=False, momentum=momentum)
 
         # Not apply SN to SPADE (original code)
         self.hidden = nn.Sequential(nn.Conv2d(3, hid_features, 3, 1, 1),
@@ -203,9 +209,11 @@ class SpatialModulatedNorm2d(nn.Module):
         self.hid_features = hid_features
         self.num_classes = num_classes
         if num_classes > 0:
-            self.bn = MultiConditionalBatchNorm2d(num_features, num_classes, momentum=momentum)
+            self.bn = MultiConditionalBatchNorm2d(
+                num_features, num_classes, momentum=momentum)
         else:
-            self.bn = nn.BatchNorm2d(num_features, affine=False, momentum=momentum)
+            self.bn = nn.BatchNorm2d(
+                num_features, affine=False, momentum=momentum)
 
         self.hidden_img = nn.Sequential(nn.Conv2d(3 + 16, hid_features, 3, 1, 1),
                                         nn.LeakyReLU(2e-1))
@@ -236,41 +244,6 @@ class SpatialModulatedNorm2d(nn.Module):
         out = gamma * feat + beta
 
         return out
-# class SpatialModulatedNorm2d(nn.Module):
-#     def __init__(self, num_features, hid_features=64, momentum=0.1, num_classes=0):
-#         super().__init__()
-#         self.num_features = num_features
-#         self.hid_features = hid_features
-#         self.num_classes = num_classes
-#         if num_classes > 0:
-#             # self.bn = MultiConditionalBatchNorm2d(num_features, num_classes, momentum=momentum)
-#             self.bn = SelfModulratedBatchNorm2d(num_features, num_latent=256, num_classes=num_classes, momentum=momentum)
-#         else:
-#             self.bn = SelfModulratedBatchNorm2d(num_features, num_latent=256, momentum=momentum)
-#
-#         self.hidden_img = nn.Sequential(nn.Conv2d(3, hid_features, 3, 1, 1),
-#                                     nn.LeakyReLU(2e-1))
-#
-#         self.gamma = nn.Conv2d(hid_features, num_features, 3, 1, 1)
-#         self.beta = nn.Conv2d(hid_features, num_features, 3, 1, 1)
-#         # make one more hidden for z and concat to out then, get gamma and beta
-#         # or resize z * mask + img then, get hid -> gamma, beta
-#
-#     def forward(self, feat, img, z, y=None):
-#         rimg = F.interpolate(img, size=feat.size()[2:])
-#
-#         hidimg = self.hidden_img(rimg)
-#
-#         if self.num_classes > 0 and y is not None:
-#             feat = self.bn(feat, z.view(z.size(0), -1), y)
-#         else:
-#             feat = self.bn(feat, z.view(z.size(0), -1))
-#
-#         gamma = self.gamma(hidimg)
-#         beta = self.beta(hidimg)
-#         out = gamma * feat + beta
-#
-#         return out
 
 
 class SelfModulratedBatchNorm2d(nn.Module):
@@ -282,7 +255,8 @@ class SelfModulratedBatchNorm2d(nn.Module):
         self.num_classes = num_classes
         self.bn = nn.BatchNorm2d(num_features, affine=False, momentum=momentum)
         if num_hidden > 0:
-            self.fc_z = nn.Sequential(nn.Linear(num_latent, num_hidden), nn.ReLU(True))
+            self.fc_z = nn.Sequential(
+                nn.Linear(num_latent, num_hidden), nn.ReLU(True))
             num_latent = num_hidden
         self.gamma = nn.Linear(num_latent, num_features)
         self.beta = nn.Linear(num_latent, num_features)
@@ -299,7 +273,8 @@ class SelfModulratedBatchNorm2d(nn.Module):
         out = self.bn(h)
         gamma = self.gamma(z)
         beta = self.beta(z)
-        out = gamma.view(-1, self.num_features, 1, 1) * out + beta.view(-1, self.num_features, 1, 1)
+        out = gamma.view(-1, self.num_features, 1, 1) * out + \
+            beta.view(-1, self.num_features, 1, 1)
         return out
 
 
@@ -308,14 +283,16 @@ class Embedding(torch.nn.Embedding):
         super(Embedding, self).__init__(*args, **kwargs)
         self.spectral_norm_pi = spectral_norm_pi
         if spectral_norm_pi > 0:
-            self.register_buffer("u", torch.randn((1, self.num_embeddings), requires_grad=False))
+            self.register_buffer("u", torch.randn(
+                (1, self.num_embeddings), requires_grad=False))
         else:
             self.register_buffer("u", None)
 
     def forward(self, input):
         if self.spectral_norm_pi > 0:
             w_mat = self.weight.view(self.num_embeddings, -1)
-            u, sigma, _ = max_singular_value(w_mat, self.u, self.spectral_norm_pi)
+            u, sigma, _ = max_singular_value(
+                w_mat, self.u, self.spectral_norm_pi)
             w_bar = torch.div(self.weight, sigma)
             if self.training:
                 self.u = u
@@ -353,15 +330,18 @@ class GCRNNCellBase(torch.nn.Module):
 
         if sn:
             # squeeze ... not necessary? ( concat_size -> latent_size ? )
-            self.layer_zh = torch.nn.utils.spectral_norm(torch.nn.Conv2d(latent_size, self.concat_size, 3, 1, 1, bias=bias))
+            self.layer_zh = torch.nn.utils.spectral_norm(
+                torch.nn.Conv2d(latent_size, self.concat_size, 3, 1, 1, bias=bias))
 
-            self.layer_hh = torch.nn.ModuleList([torch.nn.utils.spectral_norm(torch.nn.Conv2d(ch, self.concat_size, 3, 1, 1, bias=bias))])
+            self.layer_hh = torch.nn.ModuleList([torch.nn.utils.spectral_norm(
+                torch.nn.Conv2d(ch, self.concat_size, 3, 1, 1, bias=bias))])
 
             nf = 2 * self.concat_size
 
             for i in range(num_hidden - 1):
                 self.layer_hh.append(torch.nn.Sequential(torch.nn.utils.spectral_norm(torch.nn.Conv2d(nf, 2 * nf, 3, 1, 1, bias=bias)),
-                                                         torch.nn.BatchNorm2d(2 * nf),
+                                                         torch.nn.BatchNorm2d(
+                                                             2 * nf),
                                                          torch.nn.ReLU(True)))
                 nf *= 2
 
@@ -369,15 +349,18 @@ class GCRNNCellBase(torch.nn.Module):
                                                      torch.nn.Tanh()))
         else:
             # squeeze ... unnecessary? ( concat_size -> latent_size ? )
-            self.layer_zh = torch.nn.Conv2d(latent_size, self.concat_size, 3, 1, 1, bias=bias)
+            self.layer_zh = torch.nn.Conv2d(
+                latent_size, self.concat_size, 3, 1, 1, bias=bias)
 
-            self.layer_hh = torch.nn.ModuleList([torch.nn.Conv2d(ch, self.concat_size, 3, 1, 1, bias=bias)])
+            self.layer_hh = torch.nn.ModuleList(
+                [torch.nn.Conv2d(ch, self.concat_size, 3, 1, 1, bias=bias)])
 
             nf = 2 * self.concat_size
 
             for i in range(num_hidden - 1):
                 self.layer_hh.append(torch.nn.Sequential(torch.nn.Conv2d(nf, 2 * nf, 3, 1, 1, bias=bias),
-                                                         torch.nn.BatchNorm2d(2 * nf),
+                                                         torch.nn.BatchNorm2d(
+                                                             2 * nf),
                                                          torch.nn.ReLU(True)))
                 nf *= 2
 
@@ -402,13 +385,15 @@ class GCRNNCellBase(torch.nn.Module):
 class GCRNNCell(GCRNNCellBase):
 
     def __init__(self, latent_size, ch=3, bias=True, num_hidden=3, base=4, sn=False):
-        super(GCRNNCell, self).__init__(latent_size, ch, bias, num_hidden=num_hidden, sn=sn)
+        super(GCRNNCell, self).__init__(latent_size,
+                                        ch, bias, num_hidden=num_hidden, sn=sn)
         self.base = base
 
     def forward(self, z, hx=None, is_up=True):
         self.check_forward_input(z)
         if hx is None:
-            hx = torch.ones(z.size(0), 3, self.base, self.base, requires_grad=False)
+            hx = torch.ones(z.size(0), 3, self.base,
+                            self.base, requires_grad=False)
             if z.is_cuda:
                 hx = hx.cuda(z.device, non_blocking=True)
 
@@ -449,12 +434,14 @@ class DCRNNCellBase(torch.nn.Module):
 
             for i in range(num_hidden - 1):
                 self.layer_xhh.append(torch.nn.Sequential(torch.nn.utils.spectral_norm(torch.nn.Conv2d(nf_, 2 * nf_, 3, 1, 1, bias=bias)),
-                                                          torch.nn.BatchNorm2d(2 * nf_),
+                                                          torch.nn.BatchNorm2d(
+                                                              2 * nf_),
                                                           torch.nn.LeakyReLU(True)))
                 nf_ *= 2
 
             self.layer_xhh.append(torch.nn.Sequential(torch.nn.utils.spectral_norm(torch.nn.Conv2d(nf_, self.nf, 3, 1, 1, bias=bias)),
-                                                      torch.nn.BatchNorm2d(self.nf),
+                                                      torch.nn.BatchNorm2d(
+                                                          self.nf),
                                                       torch.nn.LeakyReLU()))
         else:
             self.layer_xhh = torch.nn.ModuleList([torch.nn.Sequential(torch.nn.Conv2d(ch + self.nf, self.nf, 3, 1, 1, bias=bias),
@@ -464,12 +451,14 @@ class DCRNNCellBase(torch.nn.Module):
 
             for i in range(num_hidden - 1):
                 self.layer_xhh.append(torch.nn.Sequential(torch.nn.Conv2d(nf_, 2 * nf_, 3, 1, 1, bias=bias),
-                                                          torch.nn.BatchNorm2d(2 * nf_),
+                                                          torch.nn.BatchNorm2d(
+                                                              2 * nf_),
                                                           torch.nn.LeakyReLU(True)))
                 nf_ *= 2
 
             self.layer_xhh.append(torch.nn.Sequential(torch.nn.Conv2d(nf_, self.nf, 3, 1, 1, bias=bias),
-                                                      torch.nn.BatchNorm2d(self.nf),
+                                                      torch.nn.BatchNorm2d(
+                                                          self.nf),
                                                       torch.nn.LeakyReLU()))
 
     def extra_repr(self):
@@ -490,12 +479,14 @@ class DCRNNCellBase(torch.nn.Module):
 class DCRNNCell(DCRNNCellBase):
 
     def __init__(self, nf=64, ch=3, bias=True, num_hidden=3, sn=False):
-        super(DCRNNCell, self).__init__(nf, ch, bias, num_hidden=num_hidden, sn=sn)
+        super(DCRNNCell, self).__init__(
+            nf, ch, bias, num_hidden=num_hidden, sn=sn)
 
     def forward(self, x, hx=None, is_down=True):
         # self.check_forward_input(x)
         if hx is None:
-            hx = torch.ones(x.size(0), self.nf, x.size(2), x.size(3), requires_grad=False)
+            hx = torch.ones(x.size(0), self.nf, x.size(2),
+                            x.size(3), requires_grad=False)
             if x.is_cuda:
                 hx = hx.cuda(x.device, non_blocking=True)
 
@@ -520,7 +511,7 @@ def mixup_criterion(x_orig, x_flip, x_recon, lam, loss='l1'):
 
 
 def eval_ssim(img1, img2, max_val=255, filter_size=11,
-                       filter_sigma=1.5, k1=0.01, k2=0.03):
+              filter_sigma=1.5, k1=0.01, k2=0.03):
     """Return the Structural Similarity Map between `img1` and `img2`.
 
     This function attempts to match the functionality of ssim_index_new.m by
@@ -597,7 +588,7 @@ def eval_ssim(img1, img2, max_val=255, filter_size=11,
 
 
 def eval_psnr(img1, img2):
-    mse = np.mean( (img1 - img2) ** 2 )
+    mse = np.mean((img1 - img2) ** 2)
     if mse == 0:
         return 100
     PIXEL_MAX = 255.0
@@ -616,74 +607,3 @@ def _FSpecialGauss(size, sigma):
     assert len(x) == size
     g = np.exp(-((x ** 2 + y ** 2) / (2.0 * sigma ** 2)))
     return g / g.sum()
-
-
-# def calc_generator_fid(model, data_loader, args, dims=2048):
-#     eps = 1e-6
-#
-#     incept = InceptionV3([InceptionV3.BLOCK_INDEX_BY_DIM[dims]])
-#
-#     model.eval()
-#     incept.eval()
-#
-#     valiter = iter(data_loader)
-#
-#     tot_iter = len(valiter)
-#
-#     pred_fake = np.empty((args.val_batch * tot_iter, dims))
-#     pred_real = np.empty((args.val_batch * tot_iter, dims))
-#
-#     if not next(model.parameters()).device == torch.device('cpu'):
-#         incept = incept.cuda(args.gpu)
-#
-#     for i in tqdm(range(tot_iter)):
-#         x_real, _ = next(valiter)
-#         z_in = torch.randn(args.val_batch, args.latent_size)
-#         if not next(model.parameters()).device == torch.device('cpu'):
-#             x_real = x_real.cuda(args.gpu, non_blocking=True)
-#             z_in = z_in.cuda(args.gpu, non_blocking=True)
-#         out = model(z_in)
-#         x_fake = out[0]
-#         x_fake = (x_fake + 1.0) / 2.0
-#         x_real = (x_real + 1.0) / 2.0
-#
-#         tmp_fake = incept(x_fake)[0]
-#         tmp_real = incept(x_real)[0]
-#         if tmp_fake.shape[2] != 1 or tmp_fake.shape[3] != 1:
-#             tmp_fake = adaptive_avg_pool2d(tmp_fake, output_size=(1, 1))
-#             tmp_real = adaptive_avg_pool2d(tmp_real, output_size=(1, 1))
-#
-#         pred_fake[i * args.val_batch: (i + 1) * args.val_batch] = tmp_fake.cpu().data.numpy().reshape(args.val_batch, -1)
-#         pred_real[i * args.val_batch: (i + 1) * args.val_batch] = tmp_real.cpu().data.numpy().reshape(args.val_batch, -1)
-#
-#     mu_fake = np.atleast_1d(np.mean(pred_fake, axis=0))
-#     std_fake = np.atleast_2d(np.cov(pred_fake, rowvar=False))
-#
-#     mu_real = np.atleast_1d(np.mean(pred_real, axis=0))
-#     std_real = np.atleast_2d(np.cov(pred_real, rowvar=False))
-#
-#     assert mu_fake.shape == mu_real.shape
-#     assert std_fake.shape == std_real.shape
-#
-#     mu_diff = mu_fake - mu_real
-#
-#     covmean, _ = linalg.sqrtm(std_fake.dot(std_real), disp=False)
-#
-#     if not np.isfinite(covmean).all():
-#         msg = ('fid calculation produces singular product; '
-#                'adding %s to diagonal of cov estimates') % eps
-#         print(msg)
-#         offset = np.eye(std_fake.shape[0]) * eps
-#         covmean = linalg.sqrtm((std_fake + offset).dot(std_real + offset))
-#
-#     # Numerical error might give slight imaginary component
-#     if np.iscomplexobj(covmean):
-#         if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
-#             m = np.max(np.abs(covmean.imag))
-#             raise ValueError('Imaginary component {}'.format(m))
-#         covmean = covmean.real
-#
-#     tr_covmean = np.trace(covmean)
-#
-#     return mu_diff.dot(mu_diff) + np.trace(std_fake) + np.trace(std_real) - 2 * tr_covmean
-

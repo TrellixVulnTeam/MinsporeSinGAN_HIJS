@@ -21,7 +21,7 @@
 - ./code/ops.py: 许多算子
 - ./code/utils.py: 一些小工具，共享的代码
 - ./code/validation.py: 命令行参数带有 validate 时，需要调用的 validateSinGAN 函数
-- ./TEMP: 修改到一半的代码
+- ./MindsporeCode: Mindspore版本的代码
 
 ## 项目规范
 
