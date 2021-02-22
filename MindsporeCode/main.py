@@ -7,8 +7,6 @@ from datasets.datasetgetter import get_dataset
 
 import mindspore
 import mindspore.nn
-import torch.backends.cudnn as cudnn
-import torch.distributed as dist
 
 from models.generator import Generator
 from models.discriminator import Discriminator
@@ -103,7 +101,7 @@ def main():
     formatted_print('Result DIR:', args.res_dir)
     formatted_print('GAN TYPE:', args.gantype)
 
-    // 因为mindspore没有多进程加速运算模块，故阻止多进程运算
+    # 因为mindspore没有多进程加速运算模块，故阻止多进程运算
     if args.gpu is None or args.multiprocessing_distributed or args.distributed:
         print('Multiprocessing distributed is banned... Please rerun the program.')
         exit(1)
@@ -120,12 +118,6 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
 
-    if args.distributed:
-        if args.multiprocessing_distributed:
-            args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(backend='nccl', init_method='tcp://127.0.0.1:'+args.port,
-                                world_size=args.world_size, rank=args.rank)
-
     ################
     # Define model #
     ################
@@ -141,21 +133,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     networks = [discriminator, generator]
 
-    if args.distributed:
-        if args.gpu is not None:
-            print('Distributed to', args.gpu)
-            mindspore.context.set_context(device_target="GPU")
-            networks = [x.cuda(args.gpu) for x in networks]
-            args.batch_size = int(args.batch_size / ngpus_per_node)
-            args.workers = int(args.workers / ngpus_per_node)
-            networks = [torch.nn.parallel.DistributedDataParallel(
-                x, device_ids=[args.gpu], output_device=args.gpu) for x in networks]
-        else:
-            networks = [x.cuda() for x in networks]
-            networks = [torch.nn.parallel.DistributedDataParallel(
-                x) for x in networks]
-
-    elif args.gpu is not None:
+    if args.gpu is not None:
         mindspore.context.set_context(device_target="GPU")
         networks = [x.cuda(args.gpu) for x in networks]
     else:
@@ -166,16 +144,10 @@ def main_worker(gpu, ngpus_per_node, args):
     ######################
     # Loss and Optimizer #
     ######################
-    if args.distributed:
-        d_opt = mindspore.nn.Adam(
-            discriminator.module.sub_discriminators[0].parameters(), 5e-4, 0.5, 0.999)
-        g_opt = mindspore.nn.Adam(
-            generator.module.sub_generators[0].parameters(), 5e-4, 0.5, 0.999)
-    else:
-        d_opt = mindspore.nn.Adam(
-            discriminator.sub_discriminators[0].parameters(), 5e-4, 0.5, 0.999)
-        g_opt = mindspore.nn.Adam(
-            generator.sub_generators[0].parameters(), 5e-4, 0.5, 0.999)
+    d_opt = mindspore.nn.Adam(
+        discriminator.sub_discriminators[0].parameters(), 5e-4, 0.5, 0.999)
+    g_opt = mindspore.nn.Adam(
+        generator.sub_generators[0].parameters(), 5e-4, 0.5, 0.999)
 
     ##############
     # Load model #
@@ -232,11 +204,7 @@ def main_worker(gpu, ngpus_per_node, args):
     # Dataset #
     ###########
     train_dataset, _ = get_dataset(args.dataset, args)
-
-    if args.distributed:
-        train_sampler = mindspore.dataset.DistributedSampler(train_dataset)
-    else:
-        train_sampler = None
+    train_sampler = None
 
     train_loader = mindspore.DatasetHelper(train_dataset, batch_size=args.batch_size,
                                            shuffle=(train_sampler is None), num_workers=args.workers,
@@ -287,51 +255,23 @@ def main_worker(gpu, ngpus_per_node, args):
 
         networks = [discriminator, generator]
 
-        if args.distributed:
-            if args.gpu is not None:
-                print('Distributed', args.gpu)
-                torch.cuda.set_device(args.gpu)
-                networks = [x.cuda(args.gpu) for x in networks]
-                args.batch_size = int(args.batch_size / ngpus_per_node)
-                args.workers = int(args.workers / ngpus_per_node)
-                networks = [torch.nn.parallel.DistributedDataParallel(x, device_ids=[args.gpu], output_device=args.gpu)
-                            for x in networks]
-            else:
-                networks = [x.cuda() for x in networks]
-                networks = [torch.nn.parallel.DistributedDataParallel(
-                    x) for x in networks]
-
-        elif args.gpu is not None:
+        if args.gpu is not None:
             mindspore.context.set_context(device_target="GPU")
             networks = [x.cuda(args.gpu) for x in networks]
-        else:
-            networks = [torch.nn.DataParallel(x).cuda() for x in networks]
 
         discriminator, generator, = networks
 
         # Update the networks at finest scale
-        if args.distributed:
-            for net_idx in range(generator.module.current_scale):
-                for param in generator.module.sub_generators[net_idx].parameters():
-                    param.requires_grad = False
-                for param in discriminator.module.sub_discriminators[net_idx].parameters():
-                    param.requires_grad = False
+        for net_idx in range(generator.current_scale):
+            for param in generator.sub_generators[net_idx].parameters():
+                param.requires_grad = False
+            for param in discriminator.sub_discriminators[net_idx].parameters():
+                param.requires_grad = False
 
-            d_opt = mindspore.nn.Adam(discriminator.module.sub_discriminators[discriminator.current_scale].parameters(),
-                                      5e-4, 0.5, 0.999)
-            g_opt = mindspore.nn.Adam(generator.module.sub_generators[generator.current_scale].parameters(),
-                                      5e-4, 0.5, 0.999)
-        else:
-            for net_idx in range(generator.current_scale):
-                for param in generator.sub_generators[net_idx].parameters():
-                    param.requires_grad = False
-                for param in discriminator.sub_discriminators[net_idx].parameters():
-                    param.requires_grad = False
-
-            d_opt = mindspore.nn.Adam(discriminator.sub_discriminators[discriminator.current_scale].parameters(),
-                                      5e-4, 0.5, 0.999)
-            g_opt = mindspore.nn.Adam(generator.sub_generators[generator.current_scale].parameters(),
-                                      5e-4, 0.5, 0.999)
+        d_opt = mindspore.nn.Adam(discriminator.sub_discriminators[discriminator.current_scale].parameters(),
+                                    5e-4, 0.5, 0.999)
+        g_opt = mindspore.nn.Adam(generator.sub_generators[generator.current_scale].parameters(),
+                                    5e-4, 0.5, 0.999)
 
         ##############
         # Save model #
