@@ -4,7 +4,7 @@
 
 ## 项目介绍
 
-本项目旨在移植 Pytorch 上的 SinGAN 算法到 Mindspore 平台中
+本项目旨在移植 Pytorch 上的 SinGAN 算法到 Mindspore 平台中。我们是从一个现有的项目中修改代码而来的，旧有的注释大体保留，新的注释有前缀MSP:
 
 ## 项目结构
 
@@ -50,6 +50,6 @@
 | --load_model   | path to latest checkpoint              | None       |
 | --validation   | evaluate model on validation set       | validation |
 | --test         | test model on validation set           | test       |
-| --gpu          | gpu id to use                          | None       |
+| --gpu          | gpu id to use                          | 0          |
 示范：
 python main.py --gpu 0 --img_to_use 0 --img_size_max 1025 --gantype wgangp

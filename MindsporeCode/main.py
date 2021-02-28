@@ -42,7 +42,7 @@ parser.add_argument('--test', dest='test', action='store_true',
                     help='test model on validation set')
 parser.add_argument('--rank', default=0, type=int,
                     help='node rank for distributed training')
-parser.add_argument('--gpu', default=None, type=str,
+parser.add_argument('--gpu', default='0', type=str,
                     help='GPU id to use.')
 parser.add_argument('--port', default='8888', type=str)
 
@@ -50,10 +50,7 @@ parser.add_argument('--port', default='8888', type=str)
 def main():
     args = parser.parse_args()
 
-    # 如果没有设定使用哪个GPU，默认就是用0号
-    if args.gpu is None:
-        args.gpu = 0
-    else:
+    if args.gpu is not None:
         warnings.warn(
             'You have chosen a specific GPU: GPU {}'.format(args.gpu))
 
