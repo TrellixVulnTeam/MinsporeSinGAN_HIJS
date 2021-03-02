@@ -1,8 +1,9 @@
 import mindspore
+import mindspore.nn
+import mindspore.ops
 from utils import *
 from tqdm import trange
 import torchvision.utils as vutils
-from torch.nn import functional as F
 from ops import compute_grad_gp_wgan, compute_grad_gp
 
 
@@ -68,11 +69,11 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
 
             x_rec_list = G(z_rec)
 
-            g_rec = F.mse_loss(x_rec_list[-1], x_in)
+            g_rec = nn.MSELoss()(x_rec_list[-1], x_in)
             # calculate rmse for each scale
             rmse_list = [1.0]
             for rmseidx in range(1, stage + 1):
-                rmse = mindspore.ops.Sqrt(F.mse_loss(
+                rmse = mindspore.ops.Sqrt(MSELoss()(
                     x_rec_list[rmseidx], x_in_list[rmseidx]))
                 rmse_list.append(rmse)
 
@@ -98,7 +99,7 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
 
             elif args.gantype == 'lsgan':
                 # lsgan
-                g_fake = F.mse_loss(mindspore.ops.ReduceMean(
+                g_fake = nn.MSELoss()(mindspore.ops.ReduceMean(
                     g_fake_logit, (2, 3)), 0.9 * ones)
                 g_loss = g_fake + 50.0 * g_rec
 
@@ -140,9 +141,9 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
 
             elif args.gantype == 'lsgan':
                 # lsgan
-                d_fake = F.mse_loss(mindspore.ops.ReduceMean(
+                d_fake = MSELoss()(mindspore.ops.ReduceMean(
                     d_fake_logit, (2, 3)), zeros)
-                d_real = F.mse_loss(mindspore.ops.ReduceMean(
+                d_real = MSELoss()(mindspore.ops.ReduceMean(
                     d_real_logit, (2, 3)), 0.9 * ones)
                 d_loss = d_real + d_fake
 
