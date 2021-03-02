@@ -122,7 +122,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     if args.gpu is not None:
         mindspore.context.set_context(device_target="GPU")
-        networks = [x.cuda(args.gpu) for x in networks]
+        networks = [x for x in networks]
     else:
         exit(1)
 
@@ -154,9 +154,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
             if args.gpu is not None:
                 mindspore.context.set_context(device_target="GPU")
-                networks = [x.cuda(args.gpu) for x in networks]
-            else:
-                networks = [torch.nn.DataParallel(x).cuda() for x in networks]
+                networks = [x for x in networks]
 
             discriminator, generator, = networks
 
@@ -229,7 +227,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
         if args.gpu is not None:
             mindspore.context.set_context(device_target="GPU")
-            networks = [x.cuda(args.gpu) for x in networks]
+            networks = [x for x in networks]
 
         discriminator, generator, = networks
 

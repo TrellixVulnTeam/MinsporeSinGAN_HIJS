@@ -1,6 +1,5 @@
 import mindspore
 import mindspore.nn
-import mindspore.ops
 from utils import *
 from tqdm import trange
 import torchvision.utils as vutils
@@ -37,15 +36,15 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
     z_rec = additional['z_rec']
 
     for z_idx in range(len(z_rec)):
-        z_rec[z_idx] = z_rec[z_idx].cuda(args.gpu, non_blocking=True)
+        z_rec[z_idx] = z_rec[z_idx]
 
     x_in = next(train_it)
 
-    x_in = x_in.cuda(args.gpu, non_blocking=True)
+    x_in = x_in
     x_org = x_in
     x_in = F.interpolate(
         x_in, (args.size_list[stage], args.size_list[stage]), mode='bilinear', align_corners=True)
-    vutils.save_image(x_in.detach().cpu(), os.path.join(args.res_dir, 'ORGTRAIN_{}.png'.format(stage)),
+    vutils.save_image(x_in.detach(), os.path.join(args.res_dir, 'ORGTRAIN_{}.png'.format(stage)),
                       nrow=1, normalize=True)
 
     x_in_list = [x_in]
@@ -73,7 +72,7 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
             # calculate rmse for each scale
             rmse_list = [1.0]
             for rmseidx in range(1, stage + 1):
-                rmse = mindspore.ops.Sqrt(MSELoss()(
+                rmse = mindspore.ops.Sqrt(nn.MSELoss()(
                     x_rec_list[rmseidx], x_in_list[rmseidx]))
                 rmse_list.append(rmse)
 
@@ -141,9 +140,9 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
 
             elif args.gantype == 'lsgan':
                 # lsgan
-                d_fake = MSELoss()(mindspore.ops.ReduceMean(
+                d_fake = nn.MSELoss()(mindspore.ops.ReduceMean(
                     d_fake_logit, (2, 3)), zeros)
-                d_real = MSELoss()(mindspore.ops.ReduceMean(
+                d_real = nn.MSELoss()(mindspore.ops.ReduceMean(
                     d_real_logit, (2, 3)), 0.9 * ones)
                 d_loss = d_real + d_fake
 

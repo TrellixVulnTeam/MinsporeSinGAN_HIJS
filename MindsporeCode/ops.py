@@ -1,16 +1,7 @@
+import torch
 from torch import autograd
-from torch import nn
-from torch.nn import functional as F
-import math
-from scipy import signal
-import os
-import pathlib
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 import numpy as np
-import torch
-from scipy import linalg
-from torch.nn.functional import adaptive_avg_pool2d
 
 try:
     from tqdm import tqdm
@@ -24,6 +15,10 @@ except ImportError:
    MSP: These two grad function, we can't transform them to mindspore...
 '''
 def compute_grad_gp(d_out, x_in):
+    pass
+def compute_grad_gp_wgan(D, x_real, x_fake, gpu):
+    pass
+def compute_grad_gp(d_out, x_in):
     batch_size = x_in.size(0)
     grad_dout = autograd.grad(
         outputs=d_out.sum(), inputs=x_in,
@@ -35,7 +30,7 @@ def compute_grad_gp(d_out, x_in):
 
 
 def compute_grad_gp_wgan(D, x_real, x_fake, gpu):
-    alpha = torch.rand(x_real.size(0), 1, 1, 1).cuda(gpu)
+    alpha = torch.rand(x_real.size(0), 1, 1, 1)
 
     x_interpolate = ((1 - alpha) * x_real + alpha * x_fake).detach()
     x_interpolate.requires_grad = True
