@@ -42,22 +42,11 @@ parser.add_argument('--test', dest='test', action='store_true',
                     help='test model on validation set')
 parser.add_argument('--rank', default=0, type=int,
                     help='node rank for distributed training')
-parser.add_argument('--gpu', default='0', type=str,
-                    help='GPU id to use.')
 parser.add_argument('--port', default='8888', type=str)
 
 
 def main():
     args = parser.parse_args()
-
-    if args.gpu is not None:
-        warnings.warn(
-            'You have chosen a specific GPU: GPU {}'.format(args.gpu))
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-
-    ngpus_per_node = mindspore.communication.get_group_size(
-        group='hccl_world_group')
 
     if args.load_model is None:
         args.model_name = '{}_{}'.format(
@@ -84,8 +73,6 @@ def main():
         for py in modelfiles:
             copyfile(py, os.path.join(args.log_dir, 'codes', py[2:]))
 
-    formatted_print('Total Number of GPUs:', ngpus_per_node)
-    formatted_print('Total Number of Workers:', args.workers)
     formatted_print('Batch Size:', args.batch_size)
     formatted_print('Max image Size:', args.img_size_max)
     formatted_print('Min image Size:', args.img_size_min)
@@ -96,7 +83,7 @@ def main():
     main_worker(args.gpu, ngpus_per_node, args)
 
 
-def main_worker(gpu, ngpus_per_node, args):
+def main_worker(args):
 
     ################
     # Define model #
@@ -175,7 +162,7 @@ def main_worker(gpu, ngpus_per_node, args):
                        args, {"z_rec": z_fix_list})
         return
 
-    if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+    if not args.multiprocessing_distributed:
         check_list = open(os.path.join(args.log_dir, "checkpoint.txt"), "a+")
         record_txt = open(os.path.join(args.log_dir, "record.txt"), "a+")
         record_txt.write('DATASET\t:\t{}\n'.format(args.dataset))

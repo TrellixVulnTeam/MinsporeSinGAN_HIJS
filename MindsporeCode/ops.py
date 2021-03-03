@@ -10,14 +10,19 @@ except ImportError:
     def tqdm(x): return x
 
 # from inception import InceptionV3
-
 '''
    MSP: These two grad function, we can't transform them to mindspore...
 '''
+
+
 def compute_grad_gp(d_out, x_in):
     pass
+
+
 def compute_grad_gp_wgan(D, x_real, x_fake, gpu):
     pass
+
+
 def compute_grad_gp(d_out, x_in):
     batch_size = x_in.size(0)
     grad_dout = autograd.grad(
