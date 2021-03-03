@@ -80,7 +80,7 @@ def main():
     formatted_print('Result DIR:', args.res_dir)
     formatted_print('GAN TYPE:', args.gantype)
 
-    main_worker(args.gpu, ngpus_per_node, args)
+    main_worker(args)
 
 
 def main_worker(args):
