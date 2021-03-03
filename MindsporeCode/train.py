@@ -5,7 +5,9 @@ from tqdm import trange
 import torchvision.utils as vutils
 from ops import compute_grad_gp_wgan, compute_grad_gp
 
-
+'''
+    MSP: .backward()
+'''
 def trainSinGAN(data_loader, networks, opts, stage, args, additional):
     # avg meter
     d_losses = AverageMeter()

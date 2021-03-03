@@ -13,7 +13,7 @@ def formatted_print(notice, value):
 
 def save_checkpoint(state, check_list, log_dir, epoch=0):
     check_file = os.path.join(log_dir, 'model_{}.ckpt'.format(epoch))
-    mindspore.save_checkpoint(state, check_file)
+    mindspore.save_checkpoint(state, check_file) # MSP: 潜在问题
     check_list.write('model_{}.ckpt\n'.format(epoch))
 
 

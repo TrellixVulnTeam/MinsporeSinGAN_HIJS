@@ -73,6 +73,9 @@ def main():
         for py in modelfiles:
             copyfile(py, os.path.join(args.log_dir, 'codes', py[2:]))
 
+    '''
+        MSP: 不懂BATCH SIZE干啥用的
+    '''
     formatted_print('Batch Size:', args.batch_size)
     formatted_print('Max image Size:', args.img_size_max)
     formatted_print('Min image Size:', args.img_size_min)
@@ -101,6 +104,10 @@ def main_worker(args):
     ######################
     # Loss and Optimizer #
     ######################
+
+    '''
+        MSP: Adam的返回值在train.py中使用到了，问题：Adam的返回值真的有：.step()、.zero_grad()方法吗、.param_groups吗
+    '''
     d_opt = mindspore.nn.Adam(
         discriminator.sub_discriminators[0].parameters(), 5e-4, 0.5, 0.999)
     g_opt = mindspore.nn.Adam(
@@ -137,6 +144,10 @@ def main_worker(args):
     ###########
     # Dataset #
     ###########
+
+    '''
+        MSP: 数据集读取问题很大，需要解决
+    '''
     train_dataset, _ = get_dataset(args.dataset, args)
     train_sampler = None
 
