@@ -97,13 +97,6 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
-    if len(args.gpu) == 1:
-        args.gpu = 0
-    else:
-        args.gpu = gpu
-
-    if args.gpu is not None:
-        print("Use GPU: {} for training".format(args.gpu))
 
     ################
     # Define model #
@@ -117,16 +110,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
     discriminator = Discriminator()
     generator = Generator(args.img_size_min, args.num_scale, scale_factor)
-
-    networks = [discriminator, generator]
-
-    if args.gpu is not None:
-        mindspore.context.set_context(device_target="GPU")
-        networks = [x for x in networks]
-    else:
-        exit(1)
-
-    discriminator, generator, = networks
 
     ######################
     # Loss and Optimizer #
@@ -150,13 +133,6 @@ def main_worker(gpu, ngpus_per_node, args):
             for _ in range(int(checkpoint['stage'])):
                 generator.progress()
                 discriminator.progress()
-            networks = [discriminator, generator]
-
-            if args.gpu is not None:
-                mindspore.context.set_context(device_target="GPU")
-                networks = [x for x in networks]
-
-            discriminator, generator, = networks
 
             args.stage = checkpoint['stage']
             args.img_to_use = checkpoint['img_to_use']
@@ -222,14 +198,6 @@ def main_worker(gpu, ngpus_per_node, args):
         else:
             discriminator.progress()
             generator.progress()
-
-        networks = [discriminator, generator]
-
-        if args.gpu is not None:
-            mindspore.context.set_context(device_target="GPU")
-            networks = [x for x in networks]
-
-        discriminator, generator, = networks
 
         # Update the networks at finest scale
         for net_idx in range(generator.current_scale):
