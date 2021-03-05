@@ -1,2 +1,0 @@
-Torch.optim.Adam和Mindspore.ops.Adam类似，但是有不同，我们得仔细分析，区分不同
-

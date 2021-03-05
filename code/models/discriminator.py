@@ -35,6 +35,8 @@ class Discriminator(nn.Module):
             self.nf *= 2
 
         tmp_discriminator = nn.ModuleList()
+        # MSP: Conv2d & LxxxxRelu : 2维卷积，
+        #      Sequential：
         tmp_discriminator.append(nn.Sequential(nn.Conv2d(3, self.nf, 3, 1, 1),
                                                nn.LeakyReLU(2e-1)))
 
@@ -56,3 +58,6 @@ class Discriminator(nn.Module):
 
         self.sub_discriminators.append(tmp_discriminator)
         print("DISCRIMINATOR PROGRESSION DONE")
+        # 1 读数据
+        # 2 搭网络 判别器、生成器 --------- 不明白算子含义可以去问别人
+        # 3 训练优化

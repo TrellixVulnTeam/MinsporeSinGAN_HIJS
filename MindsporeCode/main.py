@@ -1,18 +1,17 @@
 import argparse
 import warnings
+import numpy as np
 from datetime import datetime
 from glob import glob
 from shutil import copyfile
 from datasets.datasetgetter import get_dataset
-
-import mindspore
-import mindspore.nn
 
 from models.generator import Generator
 from models.discriminator import Discriminator
 
 from train import *
 from validation import *
+
 from utils import *
 
 parser = argparse.ArgumentParser(description='PyTorch Simultaneous Training')
@@ -40,13 +39,23 @@ parser.add_argument('--validation', dest='validation', action='store_true',
                     help='evaluate model on validation set')
 parser.add_argument('--test', dest='test', action='store_true',
                     help='test model on validation set')
+parser.add_argument('--world-size', default=1, type=int,
+                    help='number of nodes for distributed training')
 parser.add_argument('--rank', default=0, type=int,
                     help='node rank for distributed training')
+parser.add_argument('--gpu', default=None, type=str,
+                    help='GPU id to use.')
+parser.add_argument('--multiprocessing-distributed', action='store_true',
+                    help='Use multi-processing distributed training to launch '
+                         'N processes per node, which has N GPUs. This is the '
+                         'fastest way to use PyTorch for either single node or '
+                         'multi node data parallel training')
 parser.add_argument('--port', default='8888', type=str)
 
 
 def main():
     args = parser.parse_args()
+
 
     if args.load_model is None:
         args.model_name = '{}_{}'.format(
@@ -56,6 +65,8 @@ def main():
 
     makedirs('./logs')
     makedirs('./results')
+    makedirs('./logs/' + args.model_name)
+    makedirs('./results/' + args.model_name)
 
     args.log_dir = os.path.join('./logs', args.model_name)
     args.res_dir = os.path.join('./results', args.model_name)
@@ -73,9 +84,7 @@ def main():
         for py in modelfiles:
             copyfile(py, os.path.join(args.log_dir, 'codes', py[2:]))
 
-    '''
-        MSP: 不懂BATCH SIZE干啥用的
-    '''
+    formatted_print('Total Number of Workers:', args.workers)
     formatted_print('Batch Size:', args.batch_size)
     formatted_print('Max image Size:', args.img_size_max)
     formatted_print('Min image Size:', args.img_size_min)
@@ -96,7 +105,7 @@ def main_worker(args):
     tmp_scale = args.img_size_max / args.img_size_min
     args.num_scale = int(np.round(np.log(tmp_scale) / np.log(scale_factor)))
     args.size_list = [int(args.img_size_min * scale_factor**i)
-                      for i in range(args.num_scale + 1)]
+                          for i in range(args.num_scale + 1)]
 
     discriminator = Discriminator()
     generator = Generator(args.img_size_min, args.num_scale, scale_factor)
@@ -104,14 +113,10 @@ def main_worker(args):
     ######################
     # Loss and Optimizer #
     ######################
-
-    '''
-        MSP: Adam的返回值在train.py中使用到了，问题：Adam的返回值真的有：.step()、.zero_grad()方法吗、.param_groups吗
-    '''
     d_opt = mindspore.nn.Adam(
-        discriminator.sub_discriminators[0].parameters(), 5e-4, 0.5, 0.999)
+        discriminator.sub_discriminators[0].get_parameters(), 5e-4, 0.5, 0.999)
     g_opt = mindspore.nn.Adam(
-        generator.sub_generators[0].parameters(), 5e-4, 0.5, 0.999)
+        generator.sub_generators[0].get_parameters(), 5e-4, 0.5, 0.999)
 
     ##############
     # Load model #
@@ -123,15 +128,16 @@ def main_worker(args):
         load_file = os.path.join(args.log_dir, to_restore)
         if os.path.isfile(load_file):
             print("=> loading checkpoint '{}'".format(load_file))
-            checkpoint = mindspore.load_checkpoint(load_file)
+            checkpoint = mindspore.load_checkpoint(
+                load_file)  # MPS map_location='cpu'#
             for _ in range(int(checkpoint['stage'])):
                 generator.progress()
                 discriminator.progress()
-
             args.stage = checkpoint['stage']
             args.img_to_use = checkpoint['img_to_use']
             discriminator.load_state_dict(checkpoint['D_state_dict'])
             generator.load_state_dict(checkpoint['G_state_dict'])
+            # MPS Adm.load_state_dict是否存在
             d_opt.load_state_dict(checkpoint['d_optimizer'])
             g_opt.load_state_dict(checkpoint['g_optimizer'])
             print("=> loaded checkpoint '{}' (stage {})"
@@ -139,93 +145,71 @@ def main_worker(args):
         else:
             print("=> no checkpoint found at '{}'".format(args.log_dir))
 
-    cudnn.benchmark = True
-
     ###########
     # Dataset #
     ###########
-
-    '''
-        MSP: 数据集读取问题很大，需要解决
-    '''
     train_dataset, _ = get_dataset(args.dataset, args)
     train_sampler = None
 
-    train_loader = mindspore.DatasetHelper(train_dataset, batch_size=args.batch_size,
-                                           shuffle=(train_sampler is None), num_workers=args.workers,
-                                           pin_memory=True, sampler=train_sampler)
+    train_loader = mindspore.DatasetHelper(train_dataset)  # MPS 可能需要调参数
 
     ######################
     # Validate and Train #
     ######################
-    z_fix_list = [mindspore.ops.Pad(mindspore.ops.StandardNormal(
-        args.batch_size, 3, args.size_list[0], args.size_list[0]), [5, 5, 5, 5], value=0)]
-    zero_list = [mindspore.ops.Pad(mindspore.ops.Zeros(args.batch_size, 3, args.size_list[zeros_idx], args.size_list[zeros_idx]),
-                                   [5, 5, 5, 5], value=0) for zeros_idx in range(1, args.num_scale + 1)]
+    op1 = mindspore.ops.Pad(((5, 5), (5, 5)))
+    op2 = mindspore.ops.Pad(((5, 5), (5, 5)))
+    z_fix_list = [op1(mindspore.ops.StandardNormal(3, args.size_list[0]))]
+    zero_list = [op2(mindspore.ops.Zeros(3, args.size_list[zeros_idx]))
+                     for zeros_idx in range(1, args.num_scale + 1)]
     z_fix_list = z_fix_list + zero_list
 
     if args.validation:
         validateSinGAN(train_loader, networks, args.stage,
                        args, {"z_rec": z_fix_list})
         return
+
     elif args.test:
         validateSinGAN(train_loader, networks, args.stage,
                        args, {"z_rec": z_fix_list})
         return
 
-    if not args.multiprocessing_distributed:
-        check_list = open(os.path.join(args.log_dir, "checkpoint.txt"), "a+")
-        record_txt = open(os.path.join(args.log_dir, "record.txt"), "a+")
-        record_txt.write('DATASET\t:\t{}\n'.format(args.dataset))
-        record_txt.write('GANTYPE\t:\t{}\n'.format(args.gantype))
-        record_txt.write('IMGTOUSE\t:\t{}\n'.format(args.img_to_use))
-        record_txt.close()
+    check_list = open(os.path.join(args.log_dir, "checkpoint.txt"), "a+")
+    record_txt = open(os.path.join(args.log_dir, "record.txt"), "a+")
+    record_txt.write('DATASET\t:\t{}\n'.format(args.dataset))
+    record_txt.write('GANTYPE\t:\t{}\n'.format(args.gantype))
+    record_txt.write('IMGTOUSE\t:\t{}\n'.format(args.img_to_use))
+    record_txt.close()
+    networks = [discriminator, generator]
 
     for stage in range(args.stage, args.num_scale + 1):
-        if args.distributed:
-            train_sampler.set_epoch(stage)
 
         trainSinGAN(train_loader, networks, {
                     "d_opt": d_opt, "g_opt": g_opt}, stage, args, {"z_rec": z_fix_list})
         validateSinGAN(train_loader, networks, stage,
                        args, {"z_rec": z_fix_list})
-
-        if args.distributed:
-            discriminator.module.progress()
-            generator.module.progress()
-        else:
-            discriminator.progress()
-            generator.progress()
+        discriminator.progress()
+        generator.progress()
 
         # Update the networks at finest scale
-        for net_idx in range(generator.current_scale):
-            for param in generator.sub_generators[net_idx].parameters():
-                param.requires_grad = False
-            for param in discriminator.sub_discriminators[net_idx].parameters():
-                param.requires_grad = False
-
         d_opt = mindspore.nn.Adam(discriminator.sub_discriminators[discriminator.current_scale].parameters(),
-                                  5e-4, 0.5, 0.999)
+                                     5e-4, 0.5, 0.999)
         g_opt = mindspore.nn.Adam(generator.sub_generators[generator.current_scale].parameters(),
-                                  5e-4, 0.5, 0.999)
-
+                                     5e-4, 0.5, 0.999)
         ##############
         # Save model #
         ##############
         if stage == 0:
-            check_list = open(os.path.join(
-                args.log_dir, "checkpoint.txt"), "a+")
+            check_list = open(os.path.join(args.log_dir, "checkpoint.txt"), "a+")
         save_checkpoint({
-            'stage': stage + 1,
-            'D_state_dict': discriminator.state_dict(),
-            'G_state_dict': generator.state_dict(),
-            'd_optimizer': d_opt.state_dict(),
-            'g_optimizer': g_opt.state_dict(),
-            'img_to_use': args.img_to_use
-        }, check_list, args.log_dir, stage + 1)
+                'stage': stage + 1,
+                'D_state_dict': discriminator.state_dict(),
+                'G_state_dict': generator.state_dict(),
+                'd_optimizer': d_opt.state_dict(),
+                'g_optimizer': g_opt.state_dict(),
+                'img_to_use': args.img_to_use
+            }, check_list, args.log_dir, stage + 1)
         if stage == args.num_scale:
             check_list.close()
-
 
 if __name__ == '__main__':
     main()

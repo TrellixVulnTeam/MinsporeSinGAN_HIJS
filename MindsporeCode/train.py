@@ -66,7 +66,8 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
                 print("GENERATOR LEARNING RATE UPDATE TO :", param_group['lr'])
 
         for _ in range(g_iter):
-            g_opt.zero_grad()
+            # MSP: 也不知道有没有什么用
+            # g_opt.zero_grad()
 
             x_rec_list = G(z_rec)
 
@@ -79,7 +80,7 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
                 rmse_list.append(rmse)
 
             z_list = [mindspore.ops.Pad(rmse_list[z_idx] * mindspore.ops.StandardNormal(args.batch_size, 3, args.size_list[z_idx],
-                                                                                        args.size_list[z_idx]).cuda(args.gpu, non_blocking=True),
+                                                                                        args.size_list[z_idx]),
                                         [5, 5, 5, 5], value=0) for z_idx in range(stage + 1)]
 
             x_fake_list = G(z_list)

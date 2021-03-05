@@ -12,16 +12,16 @@ class Discriminator(nn.Cell):
 
         first_discriminator = nn.CellList()
 
-        first_discriminator.append(nn.SequentialCell(nn.Conv2d(3, self.nf, 3, 1, 1),
-                                                     nn.LeakyReLU(2e-1)))
+        first_discriminator.append(nn.SequentialCell([nn.Conv2d(3, self.nf, 3, 1, pad_mode='pad', padding=1, has_bias=True),
+                                                     nn.LeakyReLU(2e-1)]))
         for _ in range(3):
-            first_discriminator.append(nn.SequentialCell(nn.Conv2d(self.nf, self.nf, 3, 1, 1),
+            first_discriminator.append(nn.SequentialCell([nn.Conv2d(self.nf, self.nf, 3, 1, pad_mode='pad', padding=1, has_bias=True),
                                                          nn.BatchNorm2d(
                                                              self.nf),
-                                                         nn.LeakyReLU(2e-1)))
+                                                         nn.LeakyReLU(2e-1)]))
 
         first_discriminator.append(
-            nn.SequentialCell(nn.Conv2d(self.nf, 1, 3, 1, 1)))
+            nn.SequentialCell([nn.Conv2d(self.nf, 1, 3, 1, pad_mode='pad', padding=1, has_bias=True)]))
 
         first_discriminator = nn.SequentialCell(*first_discriminator)
 
