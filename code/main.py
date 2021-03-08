@@ -24,6 +24,7 @@ from train import *
 from validation import *
 from utils import *
 
+
 parser = argparse.ArgumentParser(description='PyTorch Simultaneous Training')
 parser.add_argument('--data_dir', default='../data/', help='path to dataset')
 parser.add_argument('--dataset', default='PHOTO',
@@ -198,6 +199,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 generator.progress()
                 discriminator.progress()
             networks = [discriminator, generator]
+
             if args.distributed:
                 if args.gpu is not None:
                     print('Distributed to', args.gpu)

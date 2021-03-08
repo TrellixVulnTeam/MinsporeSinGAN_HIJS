@@ -10,7 +10,6 @@ import pickle
 
 from utils import *
 
-
 def validateSinGAN(data_loader, networks, stage, args, additional=None):
     # set nets
     D = networks[0]
@@ -60,6 +59,11 @@ def validateSinGAN(data_loader, networks, stage, args, additional=None):
                                                args.size_list[z_idx]).cuda(args.gpu, non_blocking=True),
                             [5, 5, 5, 5], value=0) for z_idx in range(stage + 1)]
             x_fake_list = G(z_list)
+
+            from tensorboardX import SummaryWriter
+            # 定义Summary_Writer
+            writer = SummaryWriter('./Result')   # 数据存放在这个文件夹
+            writer.add_graph(G, x_fake_list)
 
             vutils.save_image(x_fake_list[-1].detach().cpu(), os.path.join(args.res_dir, 'GEN_{}_{}.png'.format(stage, k)),
                               nrow=1, normalize=True)

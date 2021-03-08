@@ -112,6 +112,12 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
             d_opt.zero_grad()
             x_fake_list = G(z_list)
 
+            from tensorboardX import SummaryWriter
+            # 定义Summary_Writer
+            writer = SummaryWriter('./Result')   # 数据存放在这个文件夹
+            writer.add_graph(D, x_fake_list)
+            writer.add_graph(D, x_in)
+
             d_fake_logit = D(x_fake_list[-1].detach())
             d_real_logit = D(x_in)
 
