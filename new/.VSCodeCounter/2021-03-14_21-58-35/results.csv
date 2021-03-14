@@ -1,0 +1,11 @@
+"filename", "language", "Python", "comment", "blank", "total"
+"g:\SinGAN\MinsporeSinGAN\new\datasets.py", "Python", 8, 0, 3, 11
+"g:\SinGAN\MinsporeSinGAN\new\discriminator.py", "Python", 44, 2, 18, 64
+"g:\SinGAN\MinsporeSinGAN\new\generator.py", "Python", 64, 1, 22, 87
+"g:\SinGAN\MinsporeSinGAN\new\main.py", "Python", 105, 19, 29, 153
+"g:\SinGAN\MinsporeSinGAN\new\ops.py", "Python", 22, 1, 8, 31
+"g:\SinGAN\MinsporeSinGAN\new\test.py", "Python", 0, 16, 9, 25
+"g:\SinGAN\MinsporeSinGAN\new\train.py", "Python", 104, 21, 29, 154
+"g:\SinGAN\MinsporeSinGAN\new\utils.py", "Python", 24, 1, 12, 37
+"g:\SinGAN\MinsporeSinGAN\new\validation.py", "Python", 44, 9, 12, 65
+"Total", "-", 415, 70, 142, 627

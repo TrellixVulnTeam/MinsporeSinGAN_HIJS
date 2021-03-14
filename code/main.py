@@ -42,10 +42,6 @@ parser.add_argument('--img_size_max', default=250,
                     type=int, help='Input image size')
 parser.add_argument('--img_size_min', default=25,
                     type=int, help='Input image size')
-parser.add_argument('--img_to_use', default=-999, type=int,
-                    help='Index of the input image to use < 6287')
-parser.add_argument('--load_model', default=None, type=str, metavar='PATH',
-                    help='path to latest checkpoint (default: None)')
 parser.add_argument('--validation', dest='validation', action='store_true',
                     help='evaluate model on validation set')
 parser.add_argument('--test', dest='test', action='store_true',
