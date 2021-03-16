@@ -58,6 +58,7 @@ def get_dataset(dataset, args):
 
         train_dataset = Cars(args.data_dir, True, transforms_train, False)
         val_dataset = Cars(args.data_dir, False, transforms_val, True)
+
     elif dataset.lower() == 'dogs':
         print('USE DOGS DATASET')
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -72,22 +73,28 @@ def get_dataset(dataset, args):
 
         train_dataset = Dogs(args.data_dir, transform=transforms_train, with_id=False)
         val_dataset = Dogs(args.data_dir, transform=transforms_val, with_id=True, train=False)
-    elif dataset.lower() == 'photo':
+    ##
+    elif dataset.lower() == 'photo':#转换所有大写字符串为小写
         print('USE PHOTO DATASET')
         normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5],
-                                         std=[0.5, 0.5, 0.5])
+                                         std=[0.5, 0.5, 0.5])#将0~1转换成-1~1 (image-mean)/std
         transforms_train = transforms.Compose([transforms.Resize((args.img_size_max, args.img_size_max)),
                                                transforms.ToTensor(),
                                                normalize])
         transforms_val = transforms.Compose([transforms.Resize((args.img_size_max, args.img_size_max)),
                                              transforms.ToTensor(),
                                              normalize])
+                                             #transforms.Compose 串联多个图形变换的操作
+                                             #Resize 将输入PIL图像的大小调整为给定大小。
+                                             #ToTensor()能够把灰度范围从0-255变换到0-1之间
 
-        train_dataset = PhotoData(args.data_dir, True, transform=transforms_train, img_to_use=args.img_to_use)
-        val_dataset = PhotoData(args.data_dir, False, transform=transforms_val, img_to_use=args.img_to_use)
-
+        train_dataset = PhotoData(args.data_dir, True, transform=transforms_train, img_to_use=args.img_to_use)#训练
+        #文件的位置 索引的图像使用
+        val_dataset = PhotoData(args.data_dir, False, transform=transforms_val, img_to_use=args.img_to_use)#测试
+    ##
         if train_dataset.randidx != -999:
             args.img_to_use = train_dataset.randidx
+    
 
     else:
         print('NOT IMPLEMENTED DATASET :', dataset)

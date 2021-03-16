@@ -4,10 +4,8 @@ from utils import *
 from tqdm import trange
 import torchvision.utils as vutils
 from ops import compute_grad_gp_wgan, compute_grad_gp
+import cv2
 
-'''
-    MSP: .backward()
-'''
 def trainSinGAN(data_loader, networks, opts, stage, args, additional):
     # avg meter
     d_losses = AverageMeter()
@@ -37,15 +35,12 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
 
     z_rec = additional['z_rec']
 
-    for z_idx in range(len(z_rec)):
-        z_rec[z_idx] = z_rec[z_idx]
-
     x_in = next(train_it)
     x_org = x_in
-    x_in = F.interpolate(
-        x_in, (args.size_list[stage], args.size_list[stage]), mode='bilinear', align_corners=True)
-    vutils.save_image(x_in.detach(), os.path.join(args.res_dir, 'ORGTRAIN_{}.png'.format(stage)),
-                      nrow=1, normalize=True)
+    x_in = mindspore.ops.ResizeBilinear(((args.size_list[stage], args.size_list[stage])), align_corners=True)(x_in)
+
+    cv2.imwrite(x_in, os.path.join(
+                          args.res_dir, 'ORGTRAIN_{}.png'.format(stage)))
 
     x_in_list = [x_in]
     for xidx in range(1, stage + 1):

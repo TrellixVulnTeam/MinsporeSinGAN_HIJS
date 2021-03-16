@@ -101,7 +101,7 @@ def main_worker(args):
     ###########
     # Dataset #
     ###########
-    dataset = create_dataset()  # MSP: result is a Tensor
+    dataset = create_dataset(args)  # MSP: result is a Tensor
 
     ######################
     # Validate and Train #
@@ -132,7 +132,6 @@ def main_worker(args):
     record_txt = open(os.path.join(args.log_dir, "record.txt"), "a+")
     record_txt.write('GANTYPE\t:\t{}\n'.format(args.gantype))
     record_txt.close()
-
     for stage in range(args.stage, args.num_scale + 1):
         trainSinGAN(dataset, networks, {
                     "d_opt": d_opt, "g_opt": g_opt}, stage, args, {"z_rec": z_fix_list})

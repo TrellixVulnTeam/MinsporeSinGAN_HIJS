@@ -1,5 +1,7 @@
 from mindspore import nn
 import mindspore
+import torch
+
 
 class Generator(nn.Cell):
     def __init__(self, img_size_min, num_scale, scale_factor=4/3):
@@ -44,10 +46,13 @@ class Generator(nn.Cell):
             x_inter = x_first
 
         for i in range(1, self.current_scale + 1):
-            x_inter = nn.ResizeBilinear()(
-                x_inter, (self.size_list[i], self.size_list[i]), mode='bilinear', align_corners=True)
+            x_inter = mindspore.ops.ResizeBilinear(x_inter,
+                                                   (self.size_list[i],
+                                                    self.size_list[i]),
+                                                   align_corners=True)
             x_prev = x_inter
-            x_inter = mindspore.ops.Pad(x_inter, [5, 5, 5, 5], value=0)
+            pad = mindspore.ops.Pad(((0, 0), (0, 0), (5, 5), (5, 5)))
+            x_inter = pad(x_inter)
             x_inter = x_inter + z[i]
             x_inter = self.sub_generators[i](x_inter) + x_prev
             x_list.append(x_inter)
@@ -80,7 +85,8 @@ class Generator(nn.Cell):
 
             # Initialize layers via copy
             if self.current_scale >= 1:
-                tmp_generator.load_state_dict(prev_generator.parameters_dict())
+                tmp_generator = mindspore.load_param_into_net(
+                    tmp_generator, prev_generator.parameters_dict)  # 以python的字典格式加载存储
 
         self.sub_generators.append(tmp_generator)
         print("GENERATOR PROGRESSION DONE")
