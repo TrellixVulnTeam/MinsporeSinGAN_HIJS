@@ -23,6 +23,8 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
     # summary writer
     # writer = additional[0]
     train_it = iter(data_loader)
+    print(data_loader.shape)
+    print(train_it)
     # total_iter = 2000 * (args.num_scale - stage + 1)
     # decay_lr = 1600 * (args.num_scale - stage + 1)
     total_iter = 2000
@@ -36,8 +38,9 @@ def trainSinGAN(data_loader, networks, opts, stage, args, additional):
     z_rec = additional['z_rec']
 
     x_in = next(train_it)
+    print(x_in.shape)
     x_org = x_in
-    x_in = mindspore.ops.ResizeBilinear(((args.size_list[stage], args.size_list[stage])), align_corners=True)(x_in)
+    x_in = mindspore.ops.ResizeBilinear((args.size_list[stage], args.size_list[stage]), align_corners=True)(x_in)
 
     cv2.imwrite(x_in, os.path.join(
                           args.res_dir, 'ORGTRAIN_{}.png'.format(stage)))
